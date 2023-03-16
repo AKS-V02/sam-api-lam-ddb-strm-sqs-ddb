@@ -1,0 +1,251 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: > 
+  Template For Lambda Functions
+
+
+Parameters:
+  InputTable: 
+    Type: String
+    Description: Reference to Input Table Name
+  InputTablePrimaryKey: 
+    Type: String
+    Description: Reference to Input Table primary key
+  InputTableSortKey: 
+    Type: String
+    Description: Reference to Input Table Sort Key
+  InputTableLSIKey: 
+    Type: String
+    Description: Reference to Input Table Lsi Key
+  OutputTable: 
+    Type: String
+    Description: Reference to Output Table Name
+  OutputTablePrimaryKey: 
+    Type: String
+    Description: Reference to Input Table primary key
+  OutputTableSortKey: 
+    Type: String
+    Description: Reference to Input Table Sort Key
+  OutputTableLSIKey: 
+    Type: String
+    Description: Reference to Input Table Lsi Key
+  InputTableStreamArn: 
+    Type: String
+    Description: Reference to Input Table Stream
+  QueUrl: 
+    Type: String
+    Description: Reference to My SQS Que
+  QueArn:
+    Type: String
+    Description: Reference to My SQS Que Arn
+  DLQArn:
+    Type: String
+    Description: Reference to DLQ Que Arn
+  QueName: 
+    Type: String
+    Description: Reference to My SQS Que Name
+  joltTable:
+    Type: String
+    Description: Reference to Jolt Table Name
+  joltTablePrimaryKey: 
+    Type: String
+    Description: Reference to Input Table primary key
+  joltTableSortKey: 
+    Type: String
+    Description: Reference to Input Table Sort Key
+  OutputTableLsi: 
+    Type: String
+    Description: Reference to Input Table Sort Key
+  InputTableLsi: 
+    Type: String
+    Description: Reference to Input Table Sort Key
+
+Globals:
+  Function:
+    Runtime: java11
+    MemorySize: 512
+    Timeout: 30
+
+Resources:
+  commonAPIGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: dev
+      Name: common-api-gateway
+
+  InputDataCreate:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: inputDataTable\create
+      FunctionName: !Join [ "-" , ["InputDataCreate" , !Select [ 7, !Split [ "-", !Ref 'AWS::StackId' ] ] ] ]
+      Handler: com.input.Create::handleRequest
+      Policies:
+        - DynamoDBWritePolicy:
+            TableName: !Ref InputTable
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref InputTable
+          PRIMARY_KEY: !Ref InputTablePrimaryKey
+          SORT_KEY: !Ref InputTableSortKey
+          LSI_KEY: !Ref InputTableLSIKey
+      Events:
+        ApiEvents:
+          Type: Api
+          Properties:
+            Path: /input
+            Method: POST
+            RestApiId: !Ref commonAPIGateway
+
+  InputDataCreateLogGroup:
+    Type: AWS::Logs::LogGroup
+    DependsOn: 
+      - InputDataCreate
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${InputDataCreate}
+      RetentionInDays: 1
+
+  InputDataRead:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: inputDataTable\read
+      FunctionName: !Join [ "-" , ["InputDataRead" , !Select [ 7, !Split [ "-", !Ref 'AWS::StackId' ] ] ] ]
+      Handler: com.input.Read::handleRequest
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref InputTable
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref InputTable
+          PRIMARY_KEY: !Ref InputTablePrimaryKey
+          SORT_KEY: !Ref InputTableSortKey
+          LSI_KEY: !Ref InputTableLSIKey
+          INDEX_NAME: !Ref InputTableLsi
+      Events:
+        ApiEvents:
+          Type: Api
+          Properties:
+            Path: /input
+            Method: GET
+            RestApiId: !Ref commonAPIGateway
+
+  InputDataReadLogGroup:
+    Type: AWS::Logs::LogGroup
+    DependsOn: 
+      - InputDataRead
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${InputDataRead}
+      RetentionInDays: 1
+
+  OutputDataRead:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: outputDataTable\read
+      FunctionName: !Join [ "-" , ["OutputDataRead" , !Select [ 7, !Split [ "-", !Ref 'AWS::StackId' ] ] ] ]
+      Handler: com.output.Read::handleRequest
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref OutputTable
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref OutputTable
+          PRIMARY_KEY: !Ref OutputTablePrimaryKey
+          SORT_KEY: !Ref OutputTableSortKey
+          LSI_KEY: !Ref OutputTableLSIKey
+          INDEX_NAME: !Ref OutputTableLsi
+      Events:
+        ApiEvents:
+          Type: Api
+          Properties:
+            Path: /output
+            Method: GET
+            RestApiId: !Ref commonAPIGateway
+
+  OutputDataReadLogGroup:
+    Type: AWS::Logs::LogGroup
+    DependsOn: 
+      - OutputDataRead
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${OutputDataRead}
+      RetentionInDays: 1
+
+  SqsTrigger:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: sqsTrigger
+      FunctionName: !Join [ "-" , ["SqsTrigger" , !Select [ 7, !Split [ "-", !Ref 'AWS::StackId' ] ] ] ]
+      Handler: com.functions.PushData::handleRequest
+      Policies:
+        - SQSSendMessagePolicy:
+            QueueName: !Ref QueName
+        - DynamoDBReadPolicy:
+            TableName: !Ref joltTable
+      Environment:
+        Variables:
+          QUEUE_URL: !Ref QueUrl
+          TABLE_NAME: !Ref joltTable
+          PRIMARY_KEY: !Ref joltTablePrimaryKey
+          SORT_KEY: !Ref joltTableSortKey
+      # ReservedConcurrentExecutions: 30
+      Events:
+        InputDDBTable:
+          Type: DynamoDB
+          Properties:
+            Stream: !Ref InputTableStreamArn
+            StartingPosition: TRIM_HORIZON
+            FunctionResponseTypes: 
+              - ReportBatchItemFailures
+            MaximumBatchingWindowInSeconds: 10
+            # DestinationConfig: 
+            #   OnFailure:
+            #     Destination: !Ref DLQArn
+            MaximumRetryAttempts: 1
+            BatchSize: 10
+
+  SqsTriggerLogGroup:
+    Type: AWS::Logs::LogGroup
+    DependsOn: 
+      - SqsTrigger
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${SqsTrigger}
+      RetentionInDays: 1
+
+
+  SqsListner:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: sqslistner
+      FunctionName: !Join [ "-" , ["SqsListner" , !Select [ 7, !Split [ "-", !Ref 'AWS::StackId' ] ] ] ]
+      Handler: com.functions.ProcessMsg::handleRequest
+      Policies:
+        - DynamoDBWritePolicy:
+            TableName: !Ref OutputTable
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref OutputTable
+          PRIMARY_KEY: !Ref OutputTablePrimaryKey
+          SORT_KEY: !Ref OutputTableSortKey
+          LSI_KEY: !Ref OutputTableLSIKey
+      # ReservedConcurrentExecutions: 30
+      Events:
+        MySQSEvent:
+          Type: SQS
+          Properties:
+            Queue: !Ref QueArn
+            FunctionResponseTypes: 
+              - ReportBatchItemFailures
+            BatchSize: 10
+            MaximumBatchingWindowInSeconds: 10
+  
+  SqsListnerLogGroup:
+    Type: AWS::Logs::LogGroup
+    DependsOn: 
+      - SqsListner
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${SqsListner}
+      RetentionInDays: 1
+  
+Outputs:
+  commonEndpoint:
+    Description: API Gateway Common Endpoint
+    Value:
+      Fn::Sub: https://${commonAPIGateway}.execute-api.${AWS::Region}.amazonaws.com/dev/

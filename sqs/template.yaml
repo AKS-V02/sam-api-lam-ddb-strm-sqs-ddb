@@ -1,0 +1,34 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: > 
+  Template for SQS
+
+
+Resources:
+  MyQueue: 
+    Type: AWS::SQS::Queue
+    Properties: 
+      QueueName: !Join [ "-" , ["MyQueue" , !Select [ 7, !Split [ "-", !Ref 'AWS::StackId' ] ] ] ]
+      VisibilityTimeout: 200 # 6*lambdatimeout + MaximumBatchingWindowInSeconds
+      RedrivePolicy:  
+        deadLetterTargetArn: !GetAtt MyDLQ.Arn
+        maxReceiveCount: 1
+  
+  MyDLQ:
+    Type: AWS::SQS::Queue
+    Properties: 
+      QueueName: !Join [ "-" , ["MyDLQ" , !Select [ 7, !Split [ "-", !Ref 'AWS::StackId' ] ] ] ]
+  
+Outputs:
+  MyQueueUrl:
+    Description: My SQS que Url
+    Value: !Ref MyQueue
+  MyQueueArn:
+    Description: My SQS que Arn
+    Value: !GetAtt MyQueue.Arn
+  MyQueueName:
+    Description: My SQS que Name
+    Value: !GetAtt MyQueue.QueueName
+  MyDLQArn:
+    Description: My SQS que Arn
+    Value: !GetAtt MyDLQ.Arn

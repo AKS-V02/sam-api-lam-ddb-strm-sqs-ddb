@@ -1,0 +1,23 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: > 
+  Template For Api Gateway
+
+Resources:
+  #common API Gateway
+  #Stage name: dev
+  commonAPIGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: dev
+      Name: common-api-gateway
+
+
+Outputs:
+  commonEndpoint:
+    Description: API Gateway Common Endpoint
+    Value:
+      Fn::Sub: https://${commonAPIGateway}.execute-api.${AWS::Region}.amazonaws.com/dev/
+  gateWayId:
+    Description: Api GateWay Id
+    Value: !Ref commonAPIGateway

@@ -1,0 +1,191 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: > 
+  Template For DynamoDb
+
+
+Parameters: 
+  firstName: 
+    Type: String
+    Description: value first_name
+    Default: first_name
+  InputTableId: 
+    Type: String
+    Description: value id
+    Default: id
+  jobTitle: 
+    Type: String
+    Description: value job_title
+    Default: job_title
+  fullName: 
+    Type: String
+    Description: value full_name
+    Default: full_name
+  userId: 
+    Type: String
+    Description: value user_id
+    Default: user_id
+  profession: 
+    Type: String
+    Description: value profession
+    Default: profession
+  fromSource: 
+    Type: String
+    Description: value from_source
+    Default: from_source
+  toSource: 
+    Type: String
+    Description: value to_source 
+    Default: to_source
+  firstNameJobTitleLsi: 
+    Type: String
+    Description: value of input table lsi
+    Default: firstname_jobtitle_LSI 
+    # Default: !Join [ "-" , [ !Ref firstName , !Ref jobTitle , "LSI" ]]
+  fullNameProfessionLsi: 
+    Type: String
+    Description: value of output table lsi
+    Default: full_name_profession_LSI  
+    # Default: !Join [ "-" , [ !Ref fullName , !Ref profession , "LSI" ]]
+
+Resources:
+  InputDataTable:
+    Type: AWS::DynamoDB::Table
+    Properties: 
+      # TableName: !join [ "-" , ["InputDataTable" , !Select [ 7, !Split [ "-", !Ref AWS::StackName ] ] ] ]
+      TableName: InputDataTable
+      AttributeDefinitions:
+        - AttributeName: !Ref InputTableId
+          AttributeType: S
+        - AttributeName: !Ref firstName
+          AttributeType: S
+        # - AttributeName: last_name 
+        #   AttributeType: S
+        - AttributeName: !Ref jobTitle
+          AttributeType: S
+        # - AttributeName: from_source
+        #   AttributeType: S
+        # - AttributeName: to_source
+        #   AttributeType: S
+      KeySchema:
+        - AttributeName: !Ref firstName
+          KeyType: HASH
+        - AttributeName: !Ref InputTableId
+          KeyType: RANGE
+      ProvisionedThroughput: 
+        ReadCapacityUnits: "5"
+        WriteCapacityUnits: "5"
+      LocalSecondaryIndexes: 
+        - IndexName: firstname_jobtitle_LSI
+          KeySchema: 
+            - AttributeName: !Ref firstName
+              KeyType: HASH
+            - AttributeName: !Ref jobTitle
+              KeyType: RANGE
+          Projection: 
+            ProjectionType: ALL
+      StreamSpecification:
+        StreamViewType: NEW_IMAGE
+
+  OutputDataTable:
+    Type: AWS::DynamoDB::Table
+    DependsOn: InputDataTable
+    Properties: 
+      #TableName: !join [ "-" , ["OutputDataTable" , !Select [ 7, !Split [ "-", !Ref AWS::StackName ] ] ] ]
+      TableName: OutputDataTable
+      AttributeDefinitions:
+        - AttributeName: !Ref userId
+          AttributeType: S
+        - AttributeName: !Ref fullName
+          AttributeType: S
+        - AttributeName: !Ref profession
+          AttributeType: S
+        # - AttributeName: from_source
+        #   AttributeType: S
+        # - AttributeName: to_source
+        #   AttributeType: S
+      KeySchema:
+        - AttributeName: !Ref fullName
+          KeyType: HASH
+        - AttributeName: !Ref userId
+          KeyType: RANGE
+      ProvisionedThroughput: 
+        ReadCapacityUnits: "5"
+        WriteCapacityUnits: "5"
+      LocalSecondaryIndexes: 
+        - IndexName: full_name_profession_LSI
+          KeySchema: 
+            - AttributeName: !Ref fullName
+              KeyType: HASH
+            - AttributeName: !Ref profession
+              KeyType: RANGE
+          Projection: 
+            NonKeyAttributes: 
+              - to_source
+            ProjectionType: INCLUDE
+  
+  JoltTable:
+    Type: AWS::DynamoDB::Table
+    DependsOn: OutputDataTable
+    Properties: 
+      #TableName: !join [ "-" , ["OutputDataTable" , !Select [ 7, !Split [ "-", !Ref AWS::StackName ] ] ] ]
+      TableName: JoltTable
+      AttributeDefinitions:
+        # - AttributeName: JoltSpec
+        #   AttributeType: S
+        - AttributeName: !Ref fromSource
+          AttributeType: S
+        - AttributeName: !Ref toSource
+          AttributeType: S
+      KeySchema:
+        - AttributeName: !Ref fromSource
+          KeyType: HASH
+        - AttributeName: !Ref toSource
+          KeyType: RANGE
+      ProvisionedThroughput: 
+        ReadCapacityUnits: "5"
+        WriteCapacityUnits: "5"
+
+Outputs:
+  InputDataDynamoDbTable:
+    Description: InputData DynamoDb Table
+    Value: !Ref InputDataTable
+  InputTablePartitionkey:
+    Description: InputData DynamoDb Table Partitionkey
+    Value: !Ref firstName
+  InputTableSortkey:
+    Description: InputData DynamoDb Table Sortkey
+    Value: !Ref InputTableId
+  InputTableLsikey:
+    Description: InputData DynamoDb Table Lsikey
+    Value: !Ref jobTitle
+  InputDataDynamoDbTableStreamArn:
+    Description: InputData DynamoDb Table StreamArn
+    Value: !GetAtt InputDataTable.StreamArn
+  OutputDataDynamoDbTable:
+    Description: OutputData DynamoDb Table
+    Value: !Ref OutputDataTable
+  OutputTablePartitionkey:
+    Description: OutputData DynamoDb Table Partitionkey
+    Value: !Ref fullName
+  OutputTableSortkey:
+    Description: OutputData DynamoDb Table Sortkey
+    Value: !Ref userId
+  OutputTableLsikey:
+    Description: OutputData DynamoDb Table Lsikey
+    Value: !Ref profession
+  JoltTableDynamodb: 
+    Description: JoltTable DynamoDb Table
+    Value: !Ref JoltTable
+  JoltTablePartitionkey:
+    Description: JoltData DynamoDb Table Partitionkey
+    Value: !Ref fromSource
+  JoltTableSortkey:
+    Description: JoltData DynamoDb Table Sortkey
+    Value: !Ref toSource
+  OutputTableLsi:
+    Description: JoltData DynamoDb Table Sortkey
+    Value: !Ref fullNameProfessionLsi
+  InputTableLsi:
+    Description: JoltData DynamoDb Table Sortkey
+    Value: !Ref firstNameJobTitleLsi

@@ -1,0 +1,55 @@
+@endpoint = https://4orj9x37hc.execute-api.ap-south-1.amazonaws.com/dev/
+
+# @token = eyJraWQiOiJ3SUVoVTdLcjVtcDR3WEUyVXBHUitaR2VXcHF0SHdvQUc3VjM1XC8zVVB0ST0iLCJhbGciOiJSUzI1NiJ9.eyJvcmlnaW5fanRpIjoiYjdkOWE5ODMtZmI5MS00NTdhLWJiN2EtZTQyZDgxZDlkZTc5Iiwic3ViIjoiNzVkZGZiNjQtNjNhZS00MWI1LWE5NzMtZjZlOTU1MGY1M2RhIiwiYXVkIjoiNG1rcHJsNzN2ZGpiNDhrZmc4cXRtMjlybzUiLCJldmVudF9pZCI6IjVmMWJlMzJmLWUwOWItNGZlMS1iNDBjLTFhZWQwNDBiMmViNSIsInRva2VuX3VzZSI6ImlkIiwiYXV0aF90aW1lIjoxNjc2MzIwMTkwLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAuYXAtc291dGgtMS5hbWF6b25hd3MuY29tXC9hcC1zb3V0aC0xXzNEMkZDdGE5NSIsImNvZ25pdG86dXNlcm5hbWUiOiJha3NfdGVzdCIsImV4cCI6MTY3NjMyMzc5MCwiaWF0IjoxNjc2MzIwMTkwLCJqdGkiOiI1ZTFjNzhjNi1iYjBiLTRhNzgtOGViOS1jOWE0ZDUxNTMxYjcifQ.jXhbf7SmCReiedBXmdo-CM6uGtxTlHHcAUQ6yd5PoTa0Fx7q6TXcYROITX_mNEHmbNI0NNXcm3RV9vyledjudldDSV05PVbXMo8Gic8uu3hkRPA1UzXrP3p8P6KCNCktr71N8jEsut0X-YsWo9QSjXLwYa7eA445-L6-yTxznq61ECU3ASBOXUEdhOf-2IjzVb3b5Hmi73Rzrwekee6g-zAj2vEJ3hdcYKpzf1qHJqRPVASbWvQ8Usn-dIfV9aBufijQraT9DlCrDIlJT7zSrInXaefEmboWIm3oxP6aKfxSB7p0yxE9N1uYy85aWJixtORpNGcdZtnjQVqBh7TOwQ
+
+
+# POST {{endpoint}}/input
+POST {{endpoint}}/input?isList=Y
+# Authorization: {{token}}
+Content-Type: application/json
+
+[
+{
+  "first_name": "newjsjsks",
+  "last_name": "oldpppp",
+  "job_title": "worqqqqk",
+  "from_source": "me",
+  "to_source": "db"
+},
+{
+  "first_name": "newkkakcddcda",
+  "last_name": "oldiakkacdcd",
+  "job_title": "worklaolaldcdcd",
+  "from_source": "me",
+  "to_source": "db"
+}
+]
+###
+GET {{endpoint}}/input
+# Authorization: {{token}}
+Content-Type: application/json
+###
+
+GET {{endpoint}}/input?lastId=newkkakcddcda&lastFirstName=
+# Authorization: {{token}}
+Content-Type: application/json
+###
+
+GET {{endpoint}}/input?first_name=new&id=03987350-01e1-4ef7-8167-f960d2838ce4
+# Authorization: {{token}}
+Content-Type: application/json
+###
+
+GET {{endpoint}}/input?first_name=newkkakcddcda&job_title=worklaolaldcdcd
+# Authorization: {{token}}
+Content-Type: application/json
+###
+
+GET {{endpoint}}/input?first_name=newkkakcddcda
+# Authorization: {{token}}
+Content-Type: application/json
+###
+GET {{endpoint}}/output?full_name=newkkakcddcda oldiakkacdcd
+# Authorization: {{token}}
+Content-Type: application/json
+###

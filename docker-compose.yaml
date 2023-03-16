@@ -1,0 +1,10 @@
+version: '1.0'
+services:
+  lambda:
+    container_name: lambdaContainer
+    image: public.ecr.aws/lambda/java:11
+    ports:
+      - "9000:8080"
+    volumes:
+      - C:\Users\2195410\LearningProject\new-app-test\.aws-sam\build\HelloWorldFunction:/var/task/:ro
+    command: ["com.functions.Hello::hello"]
