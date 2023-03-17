@@ -52,26 +52,29 @@ public class PushData implements RequestHandler<DynamodbEvent, Serializable> {
         for (DynamodbEvent.DynamodbStreamRecord dynamodbStreamRecord : input.getRecords()) {
           try {
                 StreamRecord dynamodbRecord = dynamodbStreamRecord.getDynamodb();
-                curRecordSequenceNumber = dynamodbRecord.getSequenceNumber();   
-                Input inputdata = new Input(dynamodbRecord.getNewImage().get("first_name").getS(), 
-                dynamodbRecord.getNewImage().get("id").getS(), 
-                dynamodbRecord.getNewImage().get("last_name").getS(), 
-                dynamodbRecord.getNewImage().get("job_title").getS(), 
-                dynamodbRecord.getNewImage().get("from_source").getS(), 
-                dynamodbRecord.getNewImage().get("to_source").getS());
+                curRecordSequenceNumber = dynamodbRecord.getSequenceNumber();
+                if(!dynamodbStreamRecord.getEventName().equalsIgnoreCase("REMOVE")){
+                    Input inputdata = new Input(dynamodbRecord.getNewImage().get("first_name").getS(), 
+                    dynamodbRecord.getNewImage().get("id").getS(), 
+                    dynamodbRecord.getNewImage().get("last_name").getS(), 
+                    dynamodbRecord.getNewImage().get("job_title").getS(), 
+                    dynamodbRecord.getNewImage().get("from_source").getS(), 
+                    dynamodbRecord.getNewImage().get("to_source").getS());
 
-                JoltItem responseInput = mapper.load(JoltItem.class, inputdata.getFrom_source(), 
-                inputdata.getTo_source());
+                    JoltItem responseInput = mapper.load(JoltItem.class, inputdata.getFrom_source(), 
+                    inputdata.getTo_source());
 
-                List<Object> specs = JsonUtils.jsonToList(responseInput.getJoltSpec());
-                Chainr chainr = Chainr.fromSpec(specs);
-                String json = JsonUtils.toJsonString(inputdata);
-                Object inputJSON = JsonUtils.jsonToObject(json);
-                Object transformedOutput = chainr.transform(inputJSON);
+                    List<Object> specs = JsonUtils.jsonToList(responseInput.getJoltSpec());
+                    Chainr chainr = Chainr.fromSpec(specs);
+                    String json = JsonUtils.toJsonString(inputdata);
+                    Object inputJSON = JsonUtils.jsonToObject(json);
+                    Object transformedOutput = chainr.transform(inputJSON);
 
-                // String value = dynamodbStreamRecord.getEventSourceARN().split("/")[1];
-                // JsonUtils.jsonToList(curRecordSequenceNumber);
-                sendSQSMessage(gson.toJson(transformedOutput),queUrl);
+                    // String value = dynamodbStreamRecord.getEventSourceARN().split("/")[1];
+                    // JsonUtils.jsonToList(curRecordSequenceNumber);
+                    sendSQSMessage(gson.toJson(transformedOutput),queUrl);
+                }   
+                
                 
             } catch (Exception e) {
                 batchItemFailures.add(new StreamsEventResponse.BatchItemFailure(curRecordSequenceNumber));
